@@ -346,14 +346,17 @@ class _dummySerial(object):
 
     def read(self, data=None):
         """ Dummy function for reading"""
+        if self._read_num >= len(self._data):
+            return
         if data is not None:
             return []
         res = self._data[self._read_num]
         self._read_num = self._read_num + 1
-        if self._read_num >= len(self._data):
-            self._read_num = 0
-            sleep(1)
         return res
+
+    def close(self):
+        """ close connection to rfxtrx device """
+        pass
 
 
 ###############################################################################
@@ -487,10 +490,6 @@ class DummyTransport2(PySerialTransport):
         self.debug = debug
         self._stop = False
 
-    def close(self):
-        """ close connection to rfxtrx device """
-        self._stop = True
-
 
 class Connect(object):
     """ The main class for rfxcom-py.
@@ -508,8 +507,10 @@ class Connect(object):
         self._thread = Thread(target=self._connect, args=(device, debug))
         self._thread.setDaemon(True)
         self._thread.start()
-        while not self.transport:
+        num = 0
+        while not self.transport and num < 10:
             sleep(0.1)
+            num = num + 1
 
     def _connect(self, device, debug):
         """Connect """
